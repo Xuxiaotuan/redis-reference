@@ -5,9 +5,7 @@
 
 ### Redis Cluster Steup 
 
-#### Prepare
-
-一、Create a redis configuration template first
+#### 一、Create a redis configuration template first
 
 > vi redis-conf.tpl
 
@@ -24,7 +22,7 @@ cluster-announce-port ${PORT}
 cluster-announce-bus-port 1${PORT}
 appendonly yes
 ```
-二、Create a redis container in docker-compose
+#### 二、Create a redis container in docker-compose
 
 First：
 > docker pull redis
@@ -39,10 +37,9 @@ for port in `seq 4381 4389`; do \
   && mkdir -p ./${port}/data; \
 done
 ```
-linux中输入
 > chmod +x createRedis.sh && sh createRedis.sh
 
-三、Creating a redis cluster environment
+#### 三、Creating a redis cluster environment
 
 ```yaml
 version: "3.8"
@@ -130,13 +127,14 @@ services:
         command: redis-server /usr/local/etc/redis/redis.conf
 ```
 
-计划搭建三主六从集群环境，先指定三台master，正常生产环境应位于不同物理机，否则会影响选举，假如2个主节点存在于一个物理机上的情况。
+Plan to build a three-master and six-slave cluster environment, first specify three masters, 
+the normal production environment should be located on different physical machines, otherwise it will affect the election, if the two master nodes exist on the same physical
 
 > docker exec -it redis-4381 redis-cli --cluster create 192.168.11.146:4381 192.168.11.146:4382 192.168.11.146:4383 --cluster-replicas 0 -a b1234
 
-增加slave节点，生产环境中(master与2slave)三台物理机要错开。
+If a slave node is added, the three physical machines (master and 2slave) in the production environment must be staggered.
 
-四、增加slave节点
+#### 四、add slave node
 
 docker exec -it redis-4381 bash
 
@@ -144,14 +142,12 @@ redis-cli -a [password] --cluster add-node [old_host:old_port] -a [password] --c
 
 redis-cli -a b1234 --cluster add-node 192.168.11.146:4384 192.168.11.146:4381 -a b1234 --cluster-slave 9505b1c4ce14a660166fbc972f5de8d02da98dc5
 
-依次吧 4384 - 4389 加入到集群中
+Add 4384-4389 to the cluster one by one
 > docker exec -it redis-4381 redis-cli -a b1234 --cluster add-node 192.168.11.146:4384 192.168.11.146:4381 -a b1234 --cluster-slave
 
-最后效果
-进入 docker 容器中
+#### 五、Viewing Cluster Information
 > docker exec -it redis-4381 redis-cli -c -p 4381 -a b1234
 
-输入 cluster info
 > cluster info
 ```shell
 127.0.0.1:4381> cluster info
@@ -172,7 +168,6 @@ cluster_stats_messages_pong_received:1186
 cluster_stats_messages_meet_received:7
 cluster_stats_messages_received:2394
 ```
-输入 cluster nodes
 > cluster nodes
 ```shell
 192.168.11.146:4382> cluster nodes
