@@ -126,6 +126,7 @@ services:
           - ./4389/data:/data
         command: redis-server /usr/local/etc/redis/redis.conf
 ```
+> docker-compose up -d
 
 Plan to build a three-master and six-slave cluster environment, first specify three masters, 
 the normal production environment should be located on different physical machines, otherwise it will affect the election, if the two master nodes exist on the same physical
