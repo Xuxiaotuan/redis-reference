@@ -182,5 +182,135 @@ d4304353d07f00324bfab160ca907f065110aaf0 192.168.11.146:4381@14381 master - 0 16
 82f443aa94896593591f70ab38f52a5846f31342 192.168.11.146:4382@14382 myself,master - 0 1697769161000 2 connected 5461-10922
 ```
 
+## Redis Sentinel
+
+创建一个目录，用于存放Docker Compose文件和Redis配置文件。
+
+在该目录中创建一个名为**docker-compose.yml**的文件，并添加以下内容：
+```yaml
+version: '3'
+
+services:
+  redis-master:
+    image: redis
+    command: redis-server --requirepass b1234
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-master:/data
+    networks:
+      - redis-net
+
+  redis-slave2:
+    image: redis
+    command: redis-server --slaveof 192.168.11.146 6379 --port 6380 --requirepass b1234 --masterauth b1234  --appendonly yes
+    ports:
+      - "6380:6380"
+    volumes:
+      - ./redis-slave:/data
+    networks:
+      - redis-net
+
+  redis-slave3:
+    image: redis
+    command: redis-server --slaveof 192.168.11.146 6379 --port 6381 --requirepass b1234 --masterauth b1234  --appendonly yes
+    ports:
+      - "6381:6381"
+    volumes:
+      - ./redis-slave:/data
+    networks:
+      - redis-net
+
+  redis-sentinel:
+    image: redis
+    command: redis-sentinel /data/sentinel.conf
+    volumes:
+      - ./redis-sentinel:/data
+    ports:
+      - "26179:26379"
+    networks:
+      - redis-net
+
+  redis-sentinel2:
+    image: redis
+    command: redis-sentinel /data/sentinel.conf
+    volumes:
+      - ./redis-sentinel2:/data
+    ports:
+      - "26279:26379"
+    networks:
+      - redis-net
+
+  redis-sentinel3:
+    image: redis
+    command: redis-sentinel /data/sentinel.conf
+    volumes:
+      - ./redis-sentinel3:/data
+    ports:
+      - "26379:26379"
+    networks:
+      - redis-net
+networks:
+  redis-net:
+
+```
+
+
+networks:
+redis-net:
+该文件定义了6个服务：redis-master、redis-slave和redis-sentinel。其中，redis-master服务是主Redis服务器，redis-slave服务是从Redis服务器，redis-sentinel服务是哨兵。
+
+在该目录中创建一个名为**redis-master/redis.conf**的文件，并添加以下内容：
+```
+bind 0.0.0.0
+protected-mode no
+requirepass b1234
+```
+
+该文件配置了主Redis服务器的IP地址、密码等参数。
+
+在该目录中创建一个名为**redis-slave/redis.conf**的文件，并添加以下内容：
+```
+bind 0.0.0.0
+protected-mode no
+requirepass b1234
+slaveof 192.168.11.146 6379
+masterauth b123
+```
+该文件配置了从Redis服务器的IP地址、密码等参数，以及将其指向主Redis服务器。
+
+在该目录中创建一个名为**redis-sentinel/sentinel.conf**的文件，并添加以下内容：
+```
+bind 0.0.0.0
+protected-mode no
+sentinel monitor mymaster 192.168.11.146 6379 2
+sentinel auth-pass mymaster b1234
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 60000
+```
+该文件配置了哨兵的IP地址、密码等参数，以及将其指向主Redis服务器。
+
+复制俩份sentinel文件
+> cp redis-sentinel/ redis-sentinel2/
+> 
+> cp redis-sentinel/ redis-sentinel3/
+
+最终得到
+>-rw-rw-r-- 1 xxt xxt 1341 10月 24 17:42 docker-compose.yml
+drwxrwxr-x 2 999 xxt 4096 10月 24 17:43 redis-master/
+drwxrwxr-x 2 xxt xxt 4096 10月 24 17:43 redis-sentinel/
+drwxrwxr-x 2 xxt xxt 4096 10月 24 17:42 redis-sentinel2/
+drwxrwxr-x 2 xxt xxt 4096 10月 24 17:43 redis-sentinel3/
+drwxrwxr-x 2 999 xxt 4096 10月 24 17:43 redis-slave/
+
+在终端中进入该目录，并运行以下命令启动Docker容器：
+
+>docker-compose up -d
+
+检查哨兵的运行状态。使用命令**docker exec -it <container_id> redis-cli -p 26379 sentinel master mymaster**可以查看主Redis服务器的信息。
+
+进行故障转移测试。停止主Redis服务器，观察哨兵是否能够自动将从Redis服务器升级为新的主服务器。
+
 ## Refer to or reading
 - [x] [docker-compose搭建redis集群](https://blog.csdn.net/xiongsd/article/details/129356171)
+- [x] [docker-compose一键部署redis一主二从三哨兵模式(含密码,数据持久化)](https://www.zbaiquan.cn/archives/docker-compose%E4%B8%80%E9%94%AE%E9%83%A8%E7%BD%B2redis%E4%B8%80%E4%B8%BB%E4%BA%8C%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5%E6%A8%A1%E5%BC%8F%E5%90%AB%E5%AF%86%E7%A0%81%E6%95%B0%E6%8D%AE%E6%8C%81%E4%B9%85%E5%8C%96)
