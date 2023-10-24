@@ -8,7 +8,7 @@
 #### 一、Create a redis configuration template first
 
 > vi redis-conf.tpl
-
+192.168.11.146 为本机 ip
 ```shell
 port ${PORT}
 requirepass b1234
@@ -17,7 +17,7 @@ protected-mode no
 cluster-enabled yes
 cluster-config-file nodes.conf
 cluster-node-timeout 5000
-cluster-announce-ip 192.168.94.6
+cluster-announce-ip 192.168.11.146
 cluster-announce-port ${PORT}
 cluster-announce-bus-port 1${PORT}
 appendonly yes
@@ -143,6 +143,7 @@ redis-cli -a [password] --cluster add-node [old_host:old_port] -a [password] --c
 redis-cli -a b1234 --cluster add-node 192.168.11.146:4384 192.168.11.146:4381 -a b1234 --cluster-slave 9505b1c4ce14a660166fbc972f5de8d02da98dc5
 
 Add 4384-4389 to the cluster one by one
+
 > docker exec -it redis-4381 redis-cli -a b1234 --cluster add-node 192.168.11.146:4384 192.168.11.146:4381 -a b1234 --cluster-slave
 
 #### 五、Viewing Cluster Information
